@@ -3,6 +3,9 @@ AI-Powered Turkish Wordle Solver
 This project is a Python-based AI agent that autonomously plays and solves the Turkish version of Wordle found at wordleturkce.bundle.app.
 
 It uses the Selenium library to control a web browser and interact with the game's interface, and leverages OpenAI's GPT models to make intelligent guesses based on the game's feedback.
+
+<img src="img/bot.gif" width="480" height="600" />
+
 Features
 
 - Autonomous Gameplay: Launches a browser, navigates to the game, and plays without human intervention.
