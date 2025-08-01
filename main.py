@@ -20,6 +20,7 @@ API_KEY = os.environ.get("OPENAI_API_KEY")
 
 GECKODRIVER_PATH = './geckodriver' 
 WORDLE_URL = "https://wordleturkce.bundle.app/"
+WORD_LIST_PATH = "turkish_words.txt"
 
 # --- Selenium Helper Functions ---
 
@@ -136,79 +137,116 @@ def read_result(driver, attempt_index: int) -> str:
     return result
 
 # --- AI Logic Functions ---
-# --- FIX 2: Major upgrade to the AI prompting logic ---
+def load_word_list(path: str):
+    """Loads the word list from a file."""
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            words = {word.strip() for word in f if len(word.strip()) == 5}
+            print(f"Successfully loaded {len(words)} words from {path}.")
+            return list(words)
+    except FileNotFoundError:
+        print(f"Warning: Word list file not found at '{path}'. The AI will rely solely on its own knowledge.")
+        return []
+
 def get_ai_guess(client, history: list) -> str:
     """Calls the OpenAI API to get the next best guess with improved logic."""
     print("\nAsking OpenAI for the next guess...")
 
-    # Analyze history to create a summary of known letters
-    green_letters = {}  # {position: letter}
-    yellow_letters = defaultdict(set)  # {position: {letters}}
+    green_letters = {}
+    yellow_letters = defaultdict(set)
     gray_letters = set()
     all_yellows = set()
+    previous_guesses = [turn['guess'] for turn in history]
 
     for turn in history:
-        guess = turn['guess']
-        feedback = turn['feedback']
-        if feedback == 'INVALID':
+        guess, feedback = turn['guess'], turn['feedback']
+        if feedback in ['INVALID', 'INVALID_REPEATED', 'INVALID_LENGTH']:
             continue
         for i, letter in enumerate(guess):
             if feedback[i] == 'G':
                 green_letters[i] = letter
                 if letter in gray_letters:
-                    gray_letters.remove(letter) # A letter can be green even if grayed out before
+                    gray_letters.remove(letter)
             elif feedback[i] == 'Y':
                 yellow_letters[i].add(letter)
                 all_yellows.add(letter)
             elif feedback[i] == 'B':
-                # Only add to gray if it's not green or yellow anywhere
                 if letter not in green_letters.values() and letter not in all_yellows:
                     gray_letters.add(letter)
 
-    # Build a detailed prompt with explicit rules
-    system_prompt = "You are an expert Turkish Wordle solver. Your goal is to find the secret 5-letter word. You must follow all rules derived from the guess history."
+    # --- FIX: Refine the yellow letters list to exclude letters that are now green ---
+    # This prevents telling the AI contradictory information.
+    final_yellows = all_yellows - set(green_letters.values())
+
+    system_prompt = """You are an expert Turkish Wordle solver. You will be given the game state and a list of rules. Your goal is to provide the single best 5-letter Turkish word as a guess.
+
+Here is an example of how to think:
+--- EXAMPLE ---
+GAME STATE:
+
+- Guess: tenis, Result: BBYBY
+- Guess: sabun, Result: GBBGG
+- Guess: somun, Result: GGBGG
+- Guess: sorun, Result: GGGGG
+
+B stands for gray, Y stands for yellow, and G stands for green.
+Gray means the letter is not in the word, yellow means it is in the word but not in that position, and green means it is in the correct position.
+
+ANALYSIS:
+1. From tenis, I know 't', 'e', 'i' are gray. They are not in the word.
+2. 'n' and 's' are yellow, meaning they are in the word but not in those positions.
+So, 'n' must be in positions 1, 2, 4, or 5, and 's' must be in positions 1, 2, 3, or 4.
+Therefore, for the next guess, I will avoid 't', 'e', 'i' and insert 'n' and 's' in new positions.
+3. Predicting sabun as I need to use 's' and 'n' in new positions.
+4. From sabun, I know 's' is the 1st letter, 'u' is the 4th letter and 'n' is the 5th letter. The word is s__un.
+5. 'a', 'b' are gray. They are not in the word.
+6. From somun, I know 'o' is in the 2nd position. The word is so_un.
+7. 'm' is gray. It is not in the word.
+8. Up to this point, I have deduced the word is so_un and does not contain t, e, i, a, b, m.
+9. Then, I predict the word as sorun, which is correct.
+
+--- END EXAMPLE ---
+
+You must follow this logical process. Your response MUST be a single 5-letter Turkish word and nothing else."""
     
-    user_prompt = "Here is the current state of the game:\n"
+    user_prompt = "Here is the current game state. Follow the example and provide the next best guess.\n\n"
+    user_prompt += "--- CURRENT GAME STATE ---\n"
     
-    # Add rules based on our analysis
+    if not history:
+        user_prompt += "This is the first guess. A good starting word is 'selam' or 'merak'.\n"
+    else:
+        for turn in history:
+            user_prompt += f"Guess: {turn['guess']}, Result: {turn['feedback']}\n"
+    
+    user_prompt += "\n--- RULES YOU MUST FOLLOW ---\n"
     if green_letters:
         rule = ["_"] * 5
         for pos, letter in green_letters.items():
             rule[pos] = letter
-        user_prompt += f"- The word so far: {''.join(rule)}\n"
-    if all_yellows:
-        user_prompt += f"- The word MUST contain the letter(s): {', '.join(sorted(list(all_yellows)))}\n"
-    if yellow_letters:
-        for pos, letters in yellow_letters.items():
-            user_prompt += f"- The letter at position {pos+1} CANNOT be: {', '.join(sorted(list(letters)))}\n"
+        user_prompt += f"- The word **MUST** match this pattern: {''.join(rule)}\n"
+    if final_yellows:
+        user_prompt += f"- The word **MUST** contain '{', '.join(sorted(list(final_yellows)))}'. Look up the history and find proper placements for them.\n"
     if gray_letters:
-        user_prompt += f"- The word MUST NOT contain the letter(s): {', '.join(sorted(list(gray_letters)))}\n"
+        user_prompt += f"- The word **MUST NOT** contain these letters: {', '.join(sorted(list(gray_letters)))}\n"
+    if previous_guesses:
+        user_prompt += f"- **DO NOT** use these words again: {', '.join(previous_guesses)}\n\n"
 
-    user_prompt += "\nPrevious Guesses:\n"
-    if not history:
-        user_prompt += "None yet. Provide the best starting word. A good starting word is 'EKRAN' or 'ARABA'.\n"
-    else:
-        for turn in history:
-            user_prompt += f"- {turn['guess']}: {turn['feedback']}\n"
-    
-    user_prompt += "\nBased on all these rules, provide your next best guess. Your response must be ONLY the single 5-letter word."
+    user_prompt += "---\n\n_You are now operating under these rules. Follow them in all future responses._\nYour single best 5-letter TURKISH guess:"
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt}
-    ]
+    print("User prompt", user_prompt)
+    messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
 
-    print("Sending request to OpenAI API...")
-    print("Prompt sent:", messages)
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=messages,
-            temperature=0.3, # Lower temperature for more logical output
+            temperature=0.3,
             max_tokens=10
         )
         ai_word = response.choices[0].message.content.strip().upper().replace(" ", "")
-        ai_word_sanitized = "".join([c for c in ai_word if c.isalpha()]).upper()
+        ai_word_sanitized = "".join([c for c in ai_word if c.isalpha()])
+        tr_translator = str.maketrans("IİÜUĞGOÖ", "ıiüuğgoö")
+        ai_word_sanitized = ai_word_sanitized.translate(tr_translator).lower()
         if len(ai_word_sanitized) > 5:
             ai_word_sanitized = ai_word_sanitized[:5]
         
