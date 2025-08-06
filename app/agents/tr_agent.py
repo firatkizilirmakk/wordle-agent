@@ -11,26 +11,26 @@ class TrAgent(BaseAgent):
         --- EXAMPLE ---
         GAME STATE:
 
-        - Guess: tenis, Result: BBYBY
-        - Guess: sabun, Result: GBBGG
-        - Guess: somun, Result: GGBGG
-        - Guess: sorun, Result: GGGGG
+        - Guess: TENIS, Result: BBYBY
+        - Guess: SABUN, Result: GBBGG
+        - Guess: SOMUN, Result: GGBGG
+        - Guess: SORUN, Result: GGGGG
 
         B stands for gray, Y stands for yellow, and G stands for green.
         Gray means the letter is not in the word, yellow means it is in the word but not in that position, and green means it is in the correct position.
 
         ANALYSIS:
-        1. From tenis, I know 't', 'e', 'i' are gray. They are not in the word.
-        2. 'n' and 's' are yellow, meaning they are in the word but not in those positions.
-        So, 'n' must be in positions 1, 2, 4, or 5, and 's' must be in positions 1, 2, 3, or 4.
-        Therefore, for the next guess, I will avoid 't', 'e', 'i' and insert 'n' and 's' in new positions.
-        3. Predicting sabun as I need to use 's' and 'n' in new positions.
-        4. From sabun, I know 's' is the 1st letter, 'u' is the 4th letter and 'n' is the 5th letter. The word is s__un.
-        5. 'a', 'b' are gray. They are not in the word.
-        6. From somun, I know 'o' is in the 2nd position. The word is so_un.
-        7. 'm' is gray. It is not in the word.
-        8. Up to this point, I have deduced the word is so_un and does not contain t, e, i, a, b, m.
-        9. Then, I predict the word as sorun, which is correct.
+        1. From TENIS, I know 'T', 'E', 'İ' are gray. They are not in the word.
+        2. 'N' and 'S' are yellow, meaning they are in the word but not in those positions.
+        So, 'N' must be in positions 1, 2, 4, or 5, and 'S' must be in positions 1, 2, 3, or 4.
+        Therefore, for the next guess, I will avoid 'T', 'E', 'İ' and insert 'N' and 'S' in new positions.
+        3. Predicting SABUN as I need to use 'S' and 'N' in new positions.
+        4. From SABUN, I know 'S' is the 1st letter, 'U' is the 4th letter and 'N' is the 5th letter. The word is S__UN.
+        5. 'A', 'B' are gray. They are not in the word.
+        6. From SOMUN, I know 'O' is in the 2nd position. The word is SO_UN.
+        7. 'M' is gray (B). It is not in the word.
+        8. Up to this point, I have deduced the word is SO_UN and does not contain T, E, İ, A, B, M.
+        9. Then, I predict the word as SORUN, which is correct.
 
         --- END EXAMPLE ---
 
@@ -63,33 +63,30 @@ class TrAgent(BaseAgent):
         if gray_letters:
             user_prompt += f"- The word **MUST NOT** contain these letters: {', '.join(sorted(list(gray_letters)))}\n"
         if previous_guesses:
-            user_prompt += f"- **DO NOT** use these words again: {', '.join(previous_guesses)}\n\n"
+            user_prompt += f"- **DO NOT** use these words again ever: {', '.join(previous_guesses)}\n\n"
+        user_prompt += "You must follow these rules strictly. Do not break them.\n"
 
-        user_prompt += "---\n\n_You are now operating under these rules. Follow them in all future responses._\nYour single best 5-letter TURKISH guess:"
+        user_prompt += "---\n\n_You are now operating under these rules. Follow them in all future responses._\nYour next best 5-letter TURKISH guess:"
         return user_prompt
 
     def get_ai_guess(self, history: list) -> str:
         """Generates a guess using the AI client based on the history of attempts."""
-        user_prompt = self.get_user_prompt(history)
+        user_prompt = self._get_user_prompt(history)
         messages = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": user_prompt}]
 
         try:
             response = self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages,
-                temperature=0.3,
+                temperature=0.2,
                 max_tokens=10
             )
-            ai_word = response.choices[0].message.content.strip().upper().replace(" ", "")
-            ai_word_sanitized = "".join([c for c in ai_word if c.isalpha()])
-            tr_translator = str.maketrans("IİÜUĞGOÖ", "ıiüuğgoö")
-            ai_word_sanitized = ai_word_sanitized.translate(tr_translator).lower()
+            ai_word = response.choices[0].message.content.strip().replace(" ", "")
+            if len(ai_word) > 5:
+                ai_word = ai_word[:5]
 
-            if len(ai_word_sanitized) > 5:
-                ai_word_sanitized = ai_word_sanitized[:5]
-            
-            print(f"AI suggested: {ai_word_sanitized}")
-            return ai_word_sanitized
+            print(f"AI suggested: {ai_word}")
+            return ai_word
         except Exception as e:
             print(f"An error occurred with the OpenAI API: {e}")
             return "MERAK"
