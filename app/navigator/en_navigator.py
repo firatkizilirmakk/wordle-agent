@@ -1,4 +1,5 @@
 import time
+import tkinter as tk
 from .base import BaseNavigator
 
 from selenium.webdriver.common.by import By
@@ -84,6 +85,30 @@ class EnNavigator(BaseNavigator):
         result = "".join(feedback)
         print(f"Result found: {result}")
         return result
+
+    def read_final_result(self) -> str:
+        """reads the final result of the game."""
+        try:
+            time.sleep(1)  # Wait for the game to finish processing
+            first_close_button = WebDriverWait(self.driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'button[class^="Modal-module_closeIconButton"]'))
+            )
+            if first_close_button:
+                first_close_button.click()
+
+            time.sleep(1)  # Wait for the modal to close
+            button = WebDriverWait(self.driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'button[class^="Footer-module_shareButton"]'))
+            )
+            if button:
+                button.click()
+
+            root = tk.Tk()
+            root.withdraw()  # to hide the window
+            return root.clipboard_get()
+        except TimeoutException:
+            print("Final result button not found, assuming the game is still ongoing.")
+            return None
 
     def setup(self):
         """Sets up the navigator."""

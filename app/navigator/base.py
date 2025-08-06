@@ -39,3 +39,7 @@ class BaseNavigator:
     def setup(self):
         """Sets up the navigator."""
         self.driver = self.setup_driver()
+
+    def close_browser(self):
+        """Closes the browser."""
+        self.driver.quit()

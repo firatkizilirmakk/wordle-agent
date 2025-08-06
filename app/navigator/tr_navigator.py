@@ -1,4 +1,5 @@
 import time
+import tkinter as tk
 from .base import BaseNavigator
 
 from selenium.webdriver.common.by import By
@@ -110,6 +111,38 @@ class TrNavigator(BaseNavigator):
         result = "".join(feedback)
         print(f"Result found: {result}")
         return result
+
+    def read_final_result(self) -> str:
+        """Reads the final result (colors) from the last row after all guesses."""
+        print("Reading final result...")
+        try:
+            time.sleep(1)
+
+            # 1. Get the top-level game-app and its shadow root
+            game_app = self.driver.find_element(By.TAG_NAME, "game-app")
+            game_app_shadow_root = self.get_shadow_root(game_app)
+
+            game_div = WebDriverWait(game_app_shadow_root, 10).until(
+                EC.presence_of_element_located((By.ID, "game"))
+            )
+            # find the game-stats element
+            game_modal = game_div.find_element(By.TAG_NAME, "game-modal")
+            game_stats = game_modal.find_element(By.TAG_NAME, "game-stats")
+            game_stats_shadow_root = self.get_shadow_root(game_stats)
+
+            # get the share button
+            share_button = WebDriverWait(game_stats_shadow_root, 10).until(
+                EC.presence_of_element_located((By.ID, "share-button"))
+            )
+            if share_button:
+                share_button.click()
+
+            root = tk.Tk()
+            root.withdraw()  # to hide the window
+            return root.clipboard_get()
+        except TimeoutException:
+            print("Final result button not found, assuming the game is still ongoing.")
+            return None
 
     def setup(self):
         """Sets up the navigator."""

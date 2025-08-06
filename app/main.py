@@ -41,10 +41,16 @@ def run(language: str, **kwargs):
 
         if feedback == "GGGGG":
             won = True
+            break
+
     if won:
         print(f"SUCCESS! The word was '{guess}'. Solved in {current_attempt + 1} attempts.")
     else:
         print("FAILED! Could not solve in 6 attempts.")
+
+    shareable_output = navigator.read_final_result()
+    print(shareable_output)
+    navigator.close_browser()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Wordle Bot")
