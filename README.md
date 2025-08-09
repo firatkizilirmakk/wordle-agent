@@ -112,6 +112,21 @@ Then make POST requests to:
 - `http://localhost:8000/run_wordle_bot/en` for English Wordle
 - `http://localhost:8000/run_wordle_bot/tr` for Turkish Wordle
 
+### Running with Docker
+
+You can also build and run the application using Docker. This is the recommended way to run the application in a production environment.
+
+**1. Build the Docker Image**
+```bash
+docker build -t wordle-agent .
+```
+
+**2. Run the Docker Container**
+```bash
+docker run -p 8000:8000 -e OPENAI_API_KEY='your_openai_api_key_here' --name wordle-bot wordle-agent
+```
+Make sure to replace `'your_openai_api_key_here'` with your actual OpenAI API key.
+
 The API returns JSON with game results including win status, number of attempts, game history, and shareable output.
 
 **Note**: The script will:
