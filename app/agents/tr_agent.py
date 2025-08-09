@@ -37,6 +37,11 @@ class TrAgent(BaseAgent):
         You must follow this logical process. Your response MUST be a single 5-letter Turkish word and nothing else.
         """
 
+    @property
+    def simple_word(self):
+        """Returns a simple word for the agent."""
+        return "SELAM"
+
     def _get_user_prompt(self, history: list) -> str:
         """Generates the user prompt for the AI based on the game history."""
         previous_guesses = [turn["guess"] for turn in history]
@@ -47,7 +52,7 @@ class TrAgent(BaseAgent):
         user_prompt += "--- CURRENT GAME STATE ---\n"
 
         if not history:
-            user_prompt += "This is the first guess. A good starting word is 'selam' or 'merak'.\n"
+            user_prompt += "This is the first guess."
         else:
             for turn in history:
                 user_prompt += f"Guess: {turn['guess']}, Result: {turn['feedback']}\n"
@@ -76,10 +81,10 @@ class TrAgent(BaseAgent):
 
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4o-mini",
                 messages=messages,
                 temperature=0.2,
-                max_tokens=10
+                max_tokens=4
             )
             ai_word = response.choices[0].message.content.strip().replace(" ", "")
             if len(ai_word) > 5:
@@ -89,4 +94,4 @@ class TrAgent(BaseAgent):
             return ai_word
         except Exception as e:
             print(f"An error occurred with the OpenAI API: {e}")
-            return "MERAK"
+            return self.simple_word  # Fallback to a simple word if the API fails

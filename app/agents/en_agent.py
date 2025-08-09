@@ -32,6 +32,11 @@ class EnAgent(BaseAgent):
         You must follow this logical process. Your response MUST be a single 5-letter English word and nothing else.
         """
 
+    @property
+    def simple_word(self):
+        """Returns a simple word for the agent."""
+        return "ARISE"
+
     def _get_user_prompt(self, history):
         """Generates the user prompt for the AI based on the game history."""
         previous_guesses = [turn["guess"] for turn in history]
@@ -42,7 +47,7 @@ class EnAgent(BaseAgent):
         user_prompt += "--- CURRENT GAME STATE ---\n"
 
         if not history:
-            user_prompt += "This is the first guess. A good starting word is 'ARISE' or 'SLATE'.\n"
+            user_prompt += "This is the first guess\n"
         else:
             for turn in history:
                 user_prompt += f"Guess: {turn['guess']}, Result: {turn['feedback']}\n"
@@ -70,10 +75,10 @@ class EnAgent(BaseAgent):
         messages = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": user_prompt}]
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4o-mini",
                 messages=messages,
                 temperature=0.3,
-                max_tokens=10
+                max_tokens=4
             )
 
             ai_word = response.choices[0].message.content.strip().upper().replace(" ", "")
@@ -85,4 +90,4 @@ class EnAgent(BaseAgent):
             return ai_word_sanitized
         except Exception as e:
             print(f"An error occurred with the OpenAI API: {e}")
-            return "ARISE"
+            return self.simple_word  # Fallback to a simple word if the API fails

@@ -17,6 +17,11 @@ class BaseAgent:
             print(f"Failed to initialize OpenAI client: {e}")
             raise e
 
+    @property
+    def simple_word(self):
+        """Returns a simple word for the agent."""
+        raise NotImplementedError("Subclasses must implement this property.")
+
     def get_historic_state(self, history: list) -> dict:
         """Retrieves the historic and current state of the game."""
         green_letters = {}
