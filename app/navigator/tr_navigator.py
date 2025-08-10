@@ -36,11 +36,11 @@ class TrNavigator(BaseNavigator):
         word_to_type = word_to_type.translate(tr_translator)
         for letter in word_to_type:
             key_element = keyboard_container.find_element(By.CSS_SELECTOR, f"button[data-key='{letter.lower()}']")
-            key_element.click()
-            time.sleep(0.4)
+            self.driver.execute_script("arguments[0].click();", key_element)
+            time.sleep(1)
 
         enter_key = keyboard_container.find_element(By.CSS_SELECTOR, "button[data-key='↵']")
-        enter_key.click()
+        self.driver.execute_script("arguments[0].click();", enter_key)
         print("Word typed and submitted.")
 
     def clear_word(self, length: int):
@@ -49,8 +49,9 @@ class TrNavigator(BaseNavigator):
         keyboard_container = self.get_keyboard_container()
         backspace_key = keyboard_container.find_element(By.CSS_SELECTOR, "button[data-key='←']")
         for _ in range(length):
-            backspace_key.click()
-            time.sleep(0.05)
+            # backspace_key.click()
+            self.driver.execute_script("arguments[0].click();", backspace_key)
+            time.sleep(0.5)
 
     def read_result(self, attempt_index: int) -> str:
         """Reads the result (colors) from a specific row after a guess."""
@@ -85,9 +86,15 @@ class TrNavigator(BaseNavigator):
             )
 
             # The final and most reliable wait: wait until the 'evaluation' attribute is not null.
-            WebDriverWait(self.driver, 5).until(
-                lambda d: last_tile.get_attribute("evaluation") is not None
-            )
+            try:
+                WebDriverWait(self.driver, 5).until(
+                    lambda d: last_tile.get_attribute("evaluation") is not None
+                )
+            except TimeoutException:
+                last_tile_shadow_root = self.get_shadow_root(last_tile)
+                last_tile = WebDriverWait(last_tile_shadow_root, 5).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, "tile"))
+                )
 
         except TimeoutException as e:
             print(e)
@@ -101,13 +108,22 @@ class TrNavigator(BaseNavigator):
 
         for tile in tiles:
             status = tile.get_attribute("evaluation")
+            if status is None:
+                tile_shadow_root = self.get_shadow_root(tile)
+                tile = WebDriverWait(tile_shadow_root, 5).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, "tile"))
+                )
+                status = tile.get_attribute("data-state")
+
             if status == "correct":
                 feedback.append("G")
             elif status == "present":
                 feedback.append("Y")
-            else: # status == "absent"
+            elif status == "absent":
                 feedback.append("B")
-                
+            else:
+                return "INVALID"  # If the tile is still being evaluated, return INVALID
+
         result = "".join(feedback)
         print(f"Result found: {result}")
         return result

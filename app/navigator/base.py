@@ -14,7 +14,7 @@ class BaseNavigator:
         """Sets up the Firefox driver for Selenium."""
         print("Setting up Firefox driver...")
         firefox_options = Options()
-        # firefox_options.add_argument("--headless") 
+        firefox_options.add_argument("--headless")
         service = Service(executable_path=GECKODRIVER_PATH)
         driver = webdriver.Firefox(service=service, options=firefox_options)
         driver.set_page_load_timeout(30)
