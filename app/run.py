@@ -7,8 +7,13 @@ from .navigator.en_navigator import EnNavigator
 from .agents.tr_agent import TrAgent
 from .agents.en_agent import EnAgent
 
+from .db import Database
+
 from fastapi import FastAPI
-from .database import save_result
+
+# Create FastAPI app
+app = FastAPI()
+db = Database()
 
 def run(navigator: Union[EnNavigator, TrNavigator], agent: Union[EnAgent, TrAgent]):
     """Runs the Wordle bot for the specified language."""
@@ -81,6 +86,13 @@ def run_wordle_bot(language: str):
         agent = TrAgent()
 
     try:
-        return run(navigator, agent)
+        result = run(navigator, agent)
+        db.save_result(
+            run_date=time.strftime("%Y-%m-%d"),
+            language=language,
+            won=result["won"],
+            history=result["history"]
+        )
+        return result
     except Exception as e:
         return {"error": str(e)}
