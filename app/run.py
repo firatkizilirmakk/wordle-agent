@@ -19,6 +19,7 @@ def run(navigator: Union[EnNavigator, TrNavigator], agent: Union[EnAgent, TrAgen
         invalid_counter = 0
         use_simple_word = False
         while True:
+            print("\nTurn {}".format(current_attempt + 1))
             if use_simple_word:
                 guess = agent.simple_word
                 use_simple_word = False
@@ -33,6 +34,7 @@ def run(navigator: Union[EnNavigator, TrNavigator], agent: Union[EnAgent, TrAgen
 
             feedback = navigator.read_result(current_attempt)
             if feedback == "INVALID":
+                print(f"Invalid word: {guess}. Invalid attempts: {invalid_counter + 1}")
                 history.append({"guess": guess, "feedback": "INVALID"})
                 navigator.clear_word(len(guess))
 
