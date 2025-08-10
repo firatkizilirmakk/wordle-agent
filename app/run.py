@@ -8,28 +8,7 @@ from .agents.tr_agent import TrAgent
 from .agents.en_agent import EnAgent
 
 from fastapi import FastAPI
-
-def get_shareable_output(history: list) -> str:
-    """Generates a shareable output string from the game history."""
-    valid_history = [turn for turn in history if turn["feedback"] != "INVALID"]
-
-    gray_color = "⬜"
-    yellow_color = "🟨"
-    green_color = "🟩"
-    output = ""
-    for turn in valid_history:
-        guess = turn["guess"]
-        feedback = turn["feedback"]
-        colored_feedback = ""
-        for i in range(len(guess)):
-            if feedback[i] == "G":
-                colored_feedback += green_color
-            elif feedback[i] == "Y":
-                colored_feedback += yellow_color
-            else:
-                colored_feedback += gray_color
-        output += f"{colored_feedback}\n"
-    return output
+from .database import save_result
 
 def run(navigator: Union[EnNavigator, TrNavigator], agent: Union[EnAgent, TrAgent]):
     """Runs the Wordle bot for the specified language."""
@@ -75,13 +54,14 @@ def run(navigator: Union[EnNavigator, TrNavigator], agent: Union[EnAgent, TrAgen
     else:
         print("FAILED! Could not solve in 6 attempts.")
 
-    shareable_output = navigator.read_final_result()
+    shareable_output = navigator.read_final_result(history)
     navigator.close_browser()
     return {
         "won": won,
         "attempts": current_attempt + 1,
         "history": history,
-        "result": shareable_output
+        "result": shareable_output,
+        "final_word": guess if won else None
     }
 
 # Create FastAPI app

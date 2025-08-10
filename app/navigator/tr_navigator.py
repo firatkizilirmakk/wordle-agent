@@ -1,5 +1,5 @@
 import time
-import tkinter as tk
+
 from .base import BaseNavigator
 
 from selenium.webdriver.common.by import By
@@ -112,7 +112,7 @@ class TrNavigator(BaseNavigator):
         print(f"Result found: {result}")
         return result
 
-    def read_final_result(self) -> str:
+    def read_final_result(self, history: list) -> str:
         """Reads the final result (colors) from the last row after all guesses."""
         print("Reading final result...")
         try:
@@ -137,9 +137,12 @@ class TrNavigator(BaseNavigator):
             if share_button:
                 share_button.click()
 
-            root = tk.Tk()
-            root.withdraw()  # to hide the window
-            return root.clipboard_get()
+            time.sleep(1)  # Wait for the share modal to open
+            try:
+                return self.driver.execute_script("return navigator.clipboard.readText();")
+            except Exception as e:
+                print(f"Error reading clipboard: {e}")
+                return self._get_shareable_output(history)
         except TimeoutException:
             print("Final result button not found, assuming the game is still ongoing.")
             return None

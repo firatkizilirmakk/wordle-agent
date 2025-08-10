@@ -1,5 +1,5 @@
 import time
-import tkinter as tk
+
 from .base import BaseNavigator
 
 from selenium.webdriver.common.by import By
@@ -86,7 +86,7 @@ class EnNavigator(BaseNavigator):
         print(f"Result found: {result}")
         return result
 
-    def read_final_result(self) -> str:
+    def read_final_result(self, history: list) -> str:
         """reads the final result of the game."""
         try:
             time.sleep(1)  # Wait for the game to finish processing
@@ -103,9 +103,12 @@ class EnNavigator(BaseNavigator):
             if button:
                 button.click()
 
-            root = tk.Tk()
-            root.withdraw()  # to hide the window
-            return root.clipboard_get()
+            time.sleep(1)  # Wait for the share modal to open
+            try:
+                return self.driver.execute_script("return navigator.clipboard.readText();")
+            except Exception as e:
+                print(f"Error reading clipboard: {e}")
+                return self._get_shareable_output(history)
         except TimeoutException:
             print("Final result button not found, assuming the game is still ongoing.")
             return None
