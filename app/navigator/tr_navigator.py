@@ -32,7 +32,7 @@ class TrNavigator(BaseNavigator):
         print(f"Attempting to type the word: {word_to_type}")
 
         keyboard_container = self.get_keyboard_container()
-        tr_translator = str.maketrans("ÖÜĞŞİÇ", "öüğşiç")
+        tr_translator = str.maketrans("ÖÜĞŞİÇI", "öüğşiçı")
         word_to_type = word_to_type.translate(tr_translator)
         for letter in word_to_type:
             key_element = keyboard_container.find_element(By.CSS_SELECTOR, f"button[data-key='{letter.lower()}']")
