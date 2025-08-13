@@ -1,5 +1,6 @@
-from typing import Union
 import time
+from typing import Union
+from pydantic import BaseModel
 
 from .navigator.tr_navigator import TrNavigator
 from .navigator.en_navigator import EnNavigator
@@ -71,16 +72,19 @@ def run(navigator: Union[EnNavigator, TrNavigator], agent: Union[EnAgent, TrAgen
         "final_word": guess if won else None
     }
 
-# Create FastAPI app
-app = FastAPI()
-@app.post("/run_wordle_bot/{language}")
-def run_wordle_bot(language: str):
+class RunPayload(BaseModel):
+    """Payload for running the Wordle bot."""
+    language: str
+    model: str = "gpt-4o-mini"
+
+@app.post("/run_wordle_bot")
+def run_wordle_bot(payload: RunPayload):
     """Runs the Wordle bot for the specified language."""
-    if language == "en":
+    if payload.language == "en":
         url = "https://www.nytimes.com/games/wordle/index.html"
         navigator = EnNavigator(url=url)
         agent = EnAgent()
-    elif language == "tr":
+    elif payload.language == "tr":
         url = "https://wordleturkce.bundle.app/"
         navigator = TrNavigator(url=url)
         agent = TrAgent()
@@ -89,7 +93,7 @@ def run_wordle_bot(language: str):
         result = run(navigator, agent)
         db.save_result(
             run_date=time.strftime("%Y-%m-%d"),
-            language=language,
+            language=payload.language,
             won=result["won"],
             history=result["history"]
         )

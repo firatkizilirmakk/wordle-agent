@@ -1,8 +1,9 @@
 from .base import BaseAgent
 
 class EnAgent(BaseAgent):
-    def __init__(self):
+    def __init__(self, model: str = "gpt-4o-mini"):
         super().__init__()
+        self.model = model
         self.system_prompt = """
         You are an expert English Wordle solver. You will be given the game state and a list of rules. Your goal is to provide the single best 5-letter English word as a guess.
 
@@ -75,7 +76,7 @@ class EnAgent(BaseAgent):
         messages = [{"role": "system", "content": self.system_prompt}, {"role": "user", "content": user_prompt}]
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=self.model,
                 messages=messages,
                 temperature=0.3,
                 max_tokens=4

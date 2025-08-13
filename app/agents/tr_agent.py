@@ -3,8 +3,9 @@ from .base import BaseAgent
 class TrAgent(BaseAgent):
     """TR Wordle Agent"""
 
-    def __init__(self):
+    def __init__(self, model: str = "gpt-4o-mini"):
         super().__init__()
+        self.model = model
         self.system_prompt = """
         You are an expert Turkish Wordle solver. You will be given the game state and a list of rules. Your goal is to provide the single best 5-letter Turkish word as a guess.
         Here is an example of how to think:
@@ -81,7 +82,7 @@ class TrAgent(BaseAgent):
 
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=self.model,
                 messages=messages,
                 temperature=0.2,
                 max_tokens=4
