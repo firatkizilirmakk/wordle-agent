@@ -83,17 +83,18 @@ def run_wordle_bot(payload: RunPayload):
     if payload.language == "en":
         url = "https://www.nytimes.com/games/wordle/index.html"
         navigator = EnNavigator(url=url)
-        agent = EnAgent()
+        agent = EnAgent(model=payload.model)
     elif payload.language == "tr":
         url = "https://wordleturkce.bundle.app/"
         navigator = TrNavigator(url=url)
-        agent = TrAgent()
+        agent = TrAgent(model=payload.model)
 
     try:
         result = run(navigator, agent)
         db.save_result(
             run_date=time.strftime("%Y-%m-%d"),
             language=payload.language,
+            model=payload.model,
             won=result["won"],
             history=result["history"]
         )

@@ -24,16 +24,17 @@ class Database:
                 CREATE TABLE IF NOT EXISTS results (
                     run_date TEXT NOT NULL,
                     language TEXT NOT NULL,
+                    model TEXT NOT NULL,
                     won BOOLEAN NOT NULL,
                     history TEXT,
                     timestamp DATETIME NOT NULL,
-                    PRIMARY KEY (run_date, language)
+                    PRIMARY KEY (run_date, language, model)
                 )
             ''')
             conn.commit()
         print("Database initialized successfully.")
 
-    def save_result(self, run_date: str, language: str, won: bool, history: list):
+    def save_result(self, run_date: str, language: str, model: str, won: bool, history: list):
         """
         Saves a single game result to the database.
 
@@ -48,9 +49,9 @@ class Database:
             history_json = json.dumps(history)
             
             cursor.execute('''
-                INSERT INTO results (run_date, language, won, history, timestamp)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (run_date, language, won, history_json, datetime.now()))
+                INSERT INTO results (run_date, language, model, won, history, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (run_date, language, model, won, history_json, datetime.now()))
 
             conn.commit()
         print(f"Result for {language.upper()} Wordle saved to database.")
