@@ -1,6 +1,9 @@
+"""
+Core Wordle bot game logic.
+This module contains the main game runner function.
+"""
 import time
 from typing import Union
-from pydantic import BaseModel
 
 from .navigator.tr_navigator import TrNavigator
 from .navigator.en_navigator import EnNavigator
@@ -8,24 +11,28 @@ from .navigator.en_navigator import EnNavigator
 from .agents.tr_agent import TrAgent
 from .agents.en_agent import EnAgent
 
-from .db import Database
 
-from fastapi import FastAPI
+def run_game(navigator: Union[EnNavigator, TrNavigator], agent: Union[EnAgent, TrAgent]):
+    """
+    Runs the Wordle bot for the specified language.
 
-# Create FastAPI app
-app = FastAPI()
-db = Database()
+    Args:
+        navigator: The navigator instance for the target site
+        agent: The AI agent instance for the language
 
-def run(navigator: Union[EnNavigator, TrNavigator], agent: Union[EnAgent, TrAgent]):
-    """Runs the Wordle bot for the specified language."""
+    Returns:
+        dict: Game result containing won status, attempts, history, etc.
+    """
     history = []
     won = False
+
     for i in range(6): 
         current_attempt = i
         invalid_counter = 0
         use_simple_word = False
+
         while True:
-            print("\nTurn {}".format(current_attempt + 1))
+            print(f"\nTurn {current_attempt + 1}")
             if use_simple_word:
                 guess = agent.simple_word
                 use_simple_word = False
@@ -50,7 +57,7 @@ def run(navigator: Union[EnNavigator, TrNavigator], agent: Union[EnAgent, TrAgen
                     invalid_counter = 0
                     print(f"Invalid attempts exceeded. Using simple word: {agent.simple_word}")
             else:
-                history.append({"guess": guess, "feedback":feedback})
+                history.append({"guess": guess, "feedback": feedback})
                 break
 
         if feedback == "GGGGG":
@@ -69,35 +76,4 @@ def run(navigator: Union[EnNavigator, TrNavigator], agent: Union[EnAgent, TrAgen
         "attempts": current_attempt + 1,
         "history": history,
         "result": shareable_output,
-        "final_word": guess if won else None
     }
-
-class RunPayload(BaseModel):
-    """Payload for running the Wordle bot."""
-    language: str
-    model: str = "gpt-4o-mini"
-
-@app.post("/run_wordle_bot")
-def run_wordle_bot(payload: RunPayload):
-    """Runs the Wordle bot for the specified language."""
-    if payload.language == "en":
-        url = "https://www.nytimes.com/games/wordle/index.html"
-        navigator = EnNavigator(url=url)
-        agent = EnAgent(model=payload.model)
-    elif payload.language == "tr":
-        url = "https://wordleturkce.bundle.app/"
-        navigator = TrNavigator(url=url)
-        agent = TrAgent(model=payload.model)
-
-    try:
-        result = run(navigator, agent)
-        db.save_result(
-            run_date=time.strftime("%Y-%m-%d"),
-            language=payload.language,
-            model=payload.model,
-            won=result["won"],
-            history=result["history"]
-        )
-        return result
-    except Exception as e:
-        return {"error": str(e)}

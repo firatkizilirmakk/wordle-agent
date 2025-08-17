@@ -26,7 +26,8 @@ class Database:
                     language TEXT NOT NULL,
                     model TEXT NOT NULL,
                     won BOOLEAN NOT NULL,
-                    history TEXT,
+                    history TEXT NOT NULL,
+                    shareable_output TEXT NOT NULL,
                     timestamp DATETIME NOT NULL,
                     PRIMARY KEY (run_date, language, model)
                 )
@@ -34,24 +35,35 @@ class Database:
             conn.commit()
         print("Database initialized successfully.")
 
-    def save_result(self, run_date: str, language: str, model: str, won: bool, history: list):
+    def save_result(
+            self,
+            run_date: str,
+            language: str,
+            model: str,
+            won: bool,
+            history: list,
+            shareable_output: str
+    ):
         """
         Saves a single game result to the database.
 
         Args:
             run_date (str): The date of the game run.
-            language (str): The language of the game ('en' or 'tr').
+            language (str): The language of the game.
+            model (str): The AI model used.
             won (bool): Whether the game was won.
-            history (list): A list of dictionaries representing the game history.
+            history (list): The history of guesses and feedback.
+            shareable_output (str): The final shareable output of the game.
         """
         with sqlite3.connect(self.db_name) as conn:
             cursor = conn.cursor()
             history_json = json.dumps(history)
             
             cursor.execute('''
-                INSERT INTO results (run_date, language, model, won, history, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (run_date, language, model, won, history_json, datetime.now()))
+                INSERT INTO
+                results(run_date, language, model, won, history, shareable_output, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (run_date, language, model, won, history_json, shareable_output, datetime.now()))
 
             conn.commit()
         print(f"Result for {language.upper()} Wordle saved to database.")
