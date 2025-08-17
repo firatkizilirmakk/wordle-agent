@@ -16,12 +16,13 @@ RUN apt-get update && apt-get install -y \
 # Set the working directory
 WORKDIR /app
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy pyproject.toml and install Python dependencies
+COPY pyproject.toml .
+RUN pip install --no-cache-dir ".[api]"
 
 # Copy the application code and necessary data files
 COPY ./app ./app
+COPY .env* ./
 
 # Download and install geckodriver
 # Check for the latest version: https://github.com/mozilla/geckodriver/releases
@@ -32,12 +33,11 @@ RUN wget "https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER
     && chmod +x ./geckodriver
 
 # Expose the port the app runs on
-EXPOSE 8000
+EXPOSE 8001
 
 # The OPENAI_API_KEY must be passed as an environment variable at runtime.
 # Example: docker run -e OPENAI_API_KEY='your_key_here' ...
 # Do not hardcode your API key here.
-ENV OPENAI_API_KEY=""
 
 # Command to run the FastAPI application
-CMD ["uvicorn", "app.run:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8001"]

@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wordle-agent"
+version = "1.0.0"
+description = "AI-powered Wordle solver bot"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "selenium",
+    "openai",
+    "python-dotenv",
+    "pandas",
+]
+
+[project.optional-dependencies]
+api = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+]
+
+[project.scripts]
+wordle-bot = "app.main:main"
